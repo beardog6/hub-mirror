@@ -5,7 +5,6 @@
 # docs/source/contributing/dockerfile/dockerfile.md and
 # docs/source/assets/contributing/dockerfile-stages-dependency.png
 
-
 ARG CUDA_VERSION=12.2.1
 #################### BASE BUILD IMAGE ####################
 # prepare basic build environment
