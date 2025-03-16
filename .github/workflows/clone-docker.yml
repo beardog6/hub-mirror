@@ -32,6 +32,7 @@ jobs:
         run: |
           sudo apt-get clean
           rm -rf ~/.cache/*
+          df -h
           
       # 1. 从 issue 正文中提取仓库地址和镜像标签
       - name: Extract repository URL and tag from issue body
