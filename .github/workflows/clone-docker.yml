@@ -33,7 +33,7 @@ jobs:
         run: |
           REPO_URL=$(echo '${{ github.event.issue.body }}' | jq -r '.repository')
           TAG=$(echo '${{ github.event.issue.body }}' | jq -r '.tag')
-          REPO_DIR=$(basename "${{ steps.extract_repo_and_tag.outputs.repo_url }}" .git)
+          REPO_DIR=$(basename "${REPO_URL}" .git)
           echo "Extracted repository URL: $REPO_URL"
           echo "Extracted tag: $TAG"
           echo "Extracted tag: $REPO_DIR"
