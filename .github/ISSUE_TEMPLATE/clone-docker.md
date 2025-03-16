@@ -5,4 +5,7 @@ title: "[clone-docker] 请求执行任务"
 labels: ["clone-docker"]
 ---
 
-https://github.com/vllm-project/vllm
+{
+  "repository":"https://github.com/vllm-project/vllm.git",
+  "tag":"vllm:dev-20250316"
+}
