@@ -1,12 +1,14 @@
-# workflow 名称
 name: hub-mirror
 
-# 当新建或者修改 issues 时，触发当前 workflow
+# 触发条件
 on:
   issues:
     types: [opened, edited]
+  push:
+    paths:
+      - 'Dockerfile'
 
-# 需要执行的任务列表
+# 任务列表
 jobs:
   # 镜像转换任务
   mirror_transition:
@@ -71,3 +73,40 @@ jobs:
               repo: context.repo.repo,
               body: "[构建失败，点击查看](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
             })
+
+  # 镜像构建和推送任务
+  build_and_push_image:
+    # 运行环境
+    runs-on: ubuntu-latest
+    # 运行条件 => 当 Dockerfile 被更新时触发
+    if: ${{ github.event_name == 'push' && contains(github.event.commit.modified, 'Dockerfile') }}
+    # 镜像构建和推送任务的步骤列表
+    steps:
+      # 1. 切换分支（默认主分支）
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      # 2. 提取 Dockerfile 的第一行注解作为镜像标签
+      - name: Extract image tag from Dockerfile
+        id: extract_tag
+        run: |
+          TAG=$(sed -n '1s/^# NAME: //p' Dockerfile)
+          echo "Extracted tag: $TAG"
+          echo "::set-output name=tag::$TAG"
+
+      # 3. 登录阿里云容器镜像仓库
+      - name: Log in to Alibaba Cloud Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      # 4. 构建 Docker 镜像
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_tag.outputs.tag }} .
+
+      # 5. 推送 Docker 镜像到阿里云容器镜像仓库
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_tag.outputs.tag }}
+        
