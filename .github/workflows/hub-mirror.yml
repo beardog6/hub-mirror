@@ -128,19 +128,23 @@ jobs:
     if: contains(github.event.issue.labels.*.name, 'clone-docker')
     # 任务步骤列表
     steps:
-      # 1. 从 issue 正文中提取仓库地址
-      - name: Extract repository URL from issue body
-        id: extract_repo_url
+      # 1. 从 issue 正文中提取仓库地址和镜像标签
+      - name: Extract repository URL and image tag from issue body
+        id: extract_repo_and_tag
         run: |
-          REPO_URL=$(echo '${{ github.event.issue.body }}' | grep -oP '(?<=https://github.com/)[^ ]+')
+          echo "Issue body: ${{ github.event.issue.body }}"
+          REPO_URL=$(echo '${{ github.event.issue.body }}' | grep -oP '(?<="repository":")[^"]+')
+          TAG=$(echo '${{ github.event.issue.body }}' | grep -oP '(?<="tag":")[^"]+')
           echo "Extracted repository URL: $REPO_URL"
+          echo "Extracted tag: $TAG"
           echo "::set-output name=repo_url::$REPO_URL"
+          echo "::set-output name=tag::$TAG"
 
       # 2. Clone 代码仓库
       - name: Clone repository
         run: |
-          git clone https://github.com/${{ steps.extract_repo_url.outputs.repo_url }}.git
-          cd $(basename ${{ steps.extract_repo_url.outputs.repo_url }})
+          git clone ${{ steps.extract_repo_and_tag.outputs.repo_url }}
+          cd $(basename ${{ steps.extract_repo_and_tag.outputs.repo_url }} .git)
 
       # 3. 登录阿里云容器镜像仓库
       - name: Log in to Alibaba Cloud Container Registry
@@ -152,14 +156,13 @@ jobs:
 
       # 4. 构建 Docker 镜像
       - name: Build Docker image
-        run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_tag.outputs.tag }} .
+        run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_repo_and_tag.outputs.tag }} .
 
       # 5. 推送 Docker 镜像到阿里云容器镜像仓库
       - name: Push Docker image
-        run: docker push ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_tag.outputs.tag }}
+        run: docker push ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_repo_and_tag.outputs.tag }}
 
-      
-      # 7. 当以上步骤成功时，为 issues 添加 success 标签
+      # 6. 当以上步骤成功时，为 issues 添加 success 标签
       - name: Success issues
         if: ${{ success() }}
         uses: actions/github-script@v5
@@ -171,7 +174,7 @@ jobs:
               repo: context.repo.repo,
               labels: ['success']
             })
-      # 8. 当以上步骤失败时，为 issues 添加 failure 标签，并为其添加失败原因评论
+      # 7. 当以上步骤失败时，为 issues 添加 failure 标签，并为其添加失败原因评论
       - name: Failure issues
         if: ${{ failure() }}
         uses: actions/github-script@v5
