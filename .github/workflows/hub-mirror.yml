@@ -81,6 +81,7 @@ jobs:
       - name: Debug event data
         run: |
           echo "Event name: ${{ github.event_name }}"
+          echo "Full event data: ${{ toJson(github.event) }}"
           echo "Added files: ${{ toJson(github.event.commit.added) }}"
           echo "Modified files: ${{ toJson(github.event.commit.modified) }}"
           
