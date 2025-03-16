@@ -85,6 +85,12 @@ jobs:
     if: ${{ github.event_name == 'push' && (contains(github.event.commit.added, 'Dockerfile') || contains(github.event.commit.modified, 'Dockerfile')) }}
     # 镜像构建和推送任务的步骤列表
     steps:
+      - name: Debug event data
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Added files: ${{ toJson(github.event.commit.added) }}"
+          echo "Modified files: ${{ toJson(github.event.commit.modified) }}"
+          
       # 1. 切换分支（默认主分支）
       - name: Check out code
         uses: actions/checkout@v2
