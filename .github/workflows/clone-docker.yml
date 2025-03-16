@@ -33,20 +33,14 @@ jobs:
           sudo apt-get clean
           rm -rf ~/.cache/*
           df -h
-          
-      - name: Create Docker storage directory
-        run: |
-          sudo mkdir -p /mnt/docker
-          sudo chmod -R 777 /mnt/docker
-          
+      
       - name: Stop Docker service
         run: sudo systemctl stop docker
 
       - name: Move existing Docker data (if any)
         run: |
           if [ -d /var/lib/docker ]; then
-            sudo mv /var/lib/docker/* /mnt/docker/
-            sudo rm -rf /var/lib/docker
+            sudo mv /var/lib/docker/ /mnt/
           fi
 
       - name: Configure Docker to use /mnt/docker
