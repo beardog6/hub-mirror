@@ -44,6 +44,7 @@ jobs:
         run: |
           git clone ${{ steps.extract_repo_and_tag.outputs.repo_url }}
           cd $(basename "${{ steps.extract_repo_and_tag.outputs.repo_url }}" .git)
+          echo cd repodir：$(basename "${{ steps.extract_repo_and_tag.outputs.repo_url }}" .git)
 
       # 3. 登录阿里云容器镜像仓库
       - name: Log in to Alibaba Cloud Container Registry
