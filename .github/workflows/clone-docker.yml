@@ -4,6 +4,7 @@ name: clone-docker
 on:
   issues:
     types: [opened, edited]
+    if: contains(github.event.issue.labels.*.name, 'clone-docker')
 
 # 任务列表
 jobs:
