@@ -18,6 +18,7 @@ jobs:
           echo "Full event data: ${{ toJson(github.event) }}"
           echo "Added files: ${{ toJson(github.event.commit.added) }}"
           echo "Modified files: ${{ toJson(github.event.commit.modified) }}"
+          echo ali repo:${{ secrets.DOCKER_REPOSITORY }} 
 
 
   # 处理 clone-docker 标签的任务
