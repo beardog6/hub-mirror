@@ -18,8 +18,6 @@ jobs:
           echo "Full event data: ${{ toJson(github.event) }}"
           echo "Added files: ${{ toJson(github.event.commit.added) }}"
           echo "Modified files: ${{ toJson(github.event.commit.modified) }}"
-          echo ali repo:${{ secrets.DOCKER_REPOSITORY }} 
-
 
   # 处理 clone-docker 标签的任务
   clone_docker:
@@ -35,17 +33,18 @@ jobs:
         run: |
           REPO_URL=$(echo '${{ github.event.issue.body }}' | jq -r '.repository')
           TAG=$(echo '${{ github.event.issue.body }}' | jq -r '.tag')
+          REPO_DIR=$(basename "${{ steps.extract_repo_and_tag.outputs.repo_url }}" .git)
           echo "Extracted repository URL: $REPO_URL"
           echo "Extracted tag: $TAG"
+          echo "Extracted tag: $REPO_DIR"
           echo "::set-output name=repo_url::$REPO_URL"
           echo "::set-output name=tag::$TAG"
+          echo "::set-output name=repo_dir::$REPO_DIR"
 
       # 2. Clone 代码仓库
       - name: Clone repository
         run: |
           git clone ${{ steps.extract_repo_and_tag.outputs.repo_url }}
-          cd $(basename "${{ steps.extract_repo_and_tag.outputs.repo_url }}" .git)
-          echo cd repodir：$(basename "${{ steps.extract_repo_and_tag.outputs.repo_url }}" .git)
 
       # 3. 登录阿里云容器镜像仓库
       - name: Log in to Alibaba Cloud Container Registry
@@ -57,7 +56,7 @@ jobs:
 
       # 4. 构建 Docker 镜像
       - name: Build Docker image
-        run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_repo_and_tag.outputs.tag }} .
+        run: cd ${{ steps.extract_repo_and_tag.outputs.repo_dir }} && DOCKER_BUILDKIT=1 docker build -t ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_repo_and_tag.outputs.tag }} .
 
       # 5. 推送 Docker 镜像到阿里云容器镜像仓库
       - name: Push Docker image
