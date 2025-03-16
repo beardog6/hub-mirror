@@ -77,14 +77,13 @@ jobs:
   debug:
     runs-on: ubuntu-latest
     steps:
-  
       - name: Debug event data
         run: |
           echo "Event name: ${{ github.event_name }}"
           echo "Full event data: ${{ toJson(github.event) }}"
           echo "Added files: ${{ toJson(github.event.commit.added) }}"
           echo "Modified files: ${{ toJson(github.event.commit.modified) }}"
-          
+
   # 镜像构建和推送任务
   build_and_push_image:
     # 运行环境
@@ -93,7 +92,6 @@ jobs:
     if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
     # 镜像构建和推送任务的步骤列表
     steps:
-          
       # 1. 切换分支（默认主分支）
       - name: Check out code
         uses: actions/checkout@v2
@@ -116,8 +114,78 @@ jobs:
 
       # 4. 构建 Docker 镜像
       - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_tag.outputs.tag }} .
+        run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_tag.outputs.tag }} .
 
       # 5. 推送 Docker 镜像到阿里云容器镜像仓库
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_tag.outputs.tag }}
+
+  # 处理 clone-docker 标签的任务
+  clone_docker:
+    # 运行环境
+    runs-on: ubuntu-latest
+    # 运行条件 => issues 的 label 包含 clone-docker
+    if: contains(github.event.issue.labels.*.name, 'clone-docker')
+    # 任务步骤列表
+    steps:
+      # 1. 从 issue 正文中提取仓库地址
+      - name: Extract repository URL from issue body
+        id: extract_repo_url
+        run: |
+          REPO_URL=$(echo '${{ github.event.issue.body }}' | grep -oP '(?<=https://github.com/)[^ ]+')
+          echo "Extracted repository URL: $REPO_URL"
+          echo "::set-output name=repo_url::$REPO_URL"
+
+      # 2. Clone 代码仓库
+      - name: Clone repository
+        run: |
+          git clone https://github.com/${{ steps.extract_repo_url.outputs.repo_url }}.git
+          cd $(basename ${{ steps.extract_repo_url.outputs.repo_url }})
+
+      # 3. 登录阿里云容器镜像仓库
+      - name: Log in to Alibaba Cloud Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      # 4. 构建 Docker 镜像
+      - name: Build Docker image
+        run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_tag.outputs.tag }} .
+
+      # 5. 推送 Docker 镜像到阿里云容器镜像仓库
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_tag.outputs.tag }}
+
+      
+      # 7. 当以上步骤成功时，为 issues 添加 success 标签
+      - name: Success issues
+        if: ${{ success() }}
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['success']
+            })
+      # 8. 当以上步骤失败时，为 issues 添加 failure 标签，并为其添加失败原因评论
+      - name: Failure issues
+        if: ${{ failure() }}
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['failure']
+            })
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "[构建失败，点击查看](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            })
