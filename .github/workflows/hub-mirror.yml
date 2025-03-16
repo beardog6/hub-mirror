@@ -104,7 +104,7 @@ jobs:
 
       # 4. 构建 Docker 镜像
       - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_tag.outputs.tag }} .
+        run: DOCKER_BUILDKIT=1 docker build -t ${{ secrets.DOCKER_REPOSITORY }}/${{ steps.extract_tag.outputs.tag }} .
 
       # 5. 推送 Docker 镜像到阿里云容器镜像仓库
       - name: Push Docker image
