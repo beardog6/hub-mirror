@@ -1,5 +1,4 @@
-# NAME: vllm:openai-gemma-3
-
+# NAME: vllm:openai-gemma-3-2
 # Base image with ROCm support
 FROM vllm/vllm-openai:latest
 
