@@ -30,6 +30,7 @@ jobs:
       - name: Move existing Docker data (if any)
         run: |
           if [ -d /var/lib/docker ]; then
+            rm -rf /mnt/*
             sudo mv /var/lib/docker/ /mnt/
           fi
 
